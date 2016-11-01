@@ -25,7 +25,7 @@ namespace OpenRA.Mods.Common.Traits
 		public AttackHeli(Actor self, AttackHeliInfo info)
 			: base(self, info) { }
 
-		public override Activity GetAttackActivity(Actor self, Target newTarget, bool allowMove, bool forceAttack)
+		public override Activity GetAttackActivity(Actor self, Target newTarget, bool allowMove, bool forceAttack, uint frozenId)
 		{
 			return new HeliAttack(self, newTarget);
 		}

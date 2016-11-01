@@ -29,6 +29,7 @@ namespace OpenRA.Mods.Common.Activities
 		readonly IFacing facing;
 		readonly IPositionable positionable;
 		readonly bool forceAttack;
+		readonly uint frozenId;
 
 		WDist minRange;
 		WDist maxRange;
@@ -36,11 +37,12 @@ namespace OpenRA.Mods.Common.Activities
 		Activity moveActivity;
 		AttackStatus attackStatus = AttackStatus.UnableToAttack;
 
-		public Attack(Actor self, Target target, bool allowMovement, bool forceAttack)
+		public Attack(Actor self, Target target, bool allowMovement, bool forceAttack, uint frozenId)
 		{
 			Target = target;
 
 			this.forceAttack = forceAttack;
+			this.frozenId = frozenId;
 
 			attackTraits = self.TraitsImplementing<AttackBase>().ToArray();
 			facing = self.Trait<IFacing>();
@@ -79,10 +81,20 @@ namespace OpenRA.Mods.Common.Activities
 
 			var type = Target.Type;
 			if (!Target.IsValidFor(self) || type == TargetType.FrozenActor)
+			{
+				Console.WriteLine("Target is no longer valid! " + Target.IsValidFor(self) + "," + type);
 				return NextActivity;
+			}
+			else
+			{
+				Console.WriteLine("Target is valid, it's type is " + type);
+			}
 
 			if (attack.Info.AttackRequiresEnteringCell && !positionable.CanEnterCell(Target.Actor.Location, null, false))
+			{
+				Console.WriteLine("Cannot enter cell!");
 				return NextActivity;
+			}
 
 			// Drop the target if it moves under the shroud / fog.
 			// HACK: This would otherwise break targeting frozen actors
@@ -92,7 +104,7 @@ namespace OpenRA.Mods.Common.Activities
 				return NextActivity;
 
 			// Drop the target once none of the weapons are effective against it
-			var armaments = attack.ChooseArmamentsForTarget(Target, forceAttack).ToList();
+			var armaments = attack.ChooseArmamentsForTarget(Target, forceAttack, frozenId).ToList();
 			if (armaments.Count == 0)
 				return NextActivity;
 
@@ -102,6 +114,7 @@ namespace OpenRA.Mods.Common.Activities
 
 			if (!Target.IsInRange(self.CenterPosition, maxRange) || Target.IsInRange(self.CenterPosition, minRange))
 			{
+				Console.WriteLine("Target is no longer in range!");
 				// Try to move within range, drop the target otherwise
 				if (move == null)
 					return NextActivity;

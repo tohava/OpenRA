@@ -111,6 +111,7 @@ namespace OpenRA.Graphics
 
 		public void ApplyModifiers(IEnumerable<IPaletteModifier> paletteMods)
 		{
+			return;
 			foreach (var mod in paletteMods)
 				mod.AdjustPalette(readOnlyModifiablePalettes);
 

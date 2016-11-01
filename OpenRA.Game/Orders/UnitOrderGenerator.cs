@@ -13,6 +13,7 @@ using System.Collections.Generic;
 using System.Linq;
 using OpenRA.Graphics;
 using OpenRA.Traits;
+using System;
 
 namespace OpenRA.Orders
 {
@@ -149,8 +150,14 @@ namespace OpenRA.Orders
 				{
 					var localModifiers = modifiers;
 					string cursor = null;
+					// Console.Write("Checking if order " + o.Order + " can target " + target + " it ");
 					if (o.Order.CanTarget(self, target, actorsAt, ref localModifiers, ref cursor))
+					{
+						// Console.WriteLine("CAN!");
 						return new UnitOrderResult(self, o.Order, o.Trait, cursor, target);
+					}
+					else
+						;// Console.WriteLine("CANNOT!");
 				}
 
 				// No valid orders, so check for orders against the cell

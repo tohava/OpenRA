@@ -54,8 +54,22 @@ namespace OpenRA.Graphics
 
 		public void Draw(WorldRenderer wr, Viewport viewport)
 		{
-			foreach (var kv in spriteLayers.Values)
-				kv.Draw(wr.Viewport);
+			//foreach (var kv in spriteLayers.Values)
+			//	kv.Draw(wr.Viewport);
+
+			foreach (var cell in viewport.VisibleCellsInsideBounds)
+			{
+				var cpos = ((MPos) cell).ToCPos(map);
+				var wpos = map.CenterOfCell(cpos);
+				//Console.WriteLine("Iterating emptily over " + cell.ToString() +
+				//                  " with world pos " + wpos);
+				var tinfo = map.GetTerrainInfo(cpos);
+				var ty = tinfo.Type;
+				if (ty != "Clear" && ty != "Ore")
+					Game.Renderer.WorldRgbaColorRenderer.FillRect(wr.ScreenPxPosition(wpos) - new int2(wr.TileSize.Width / 2,wr.TileSize.Height / 2),
+					                                              wr.ScreenPxPosition(wpos) + new int2(wr.TileSize.Width / 2,wr.TileSize.Height / 2),
+										      tinfo.Color);
+			}
 
 			foreach (var r in wr.World.WorldActor.TraitsImplementing<IRenderOverlay>())
 				r.Render(wr);

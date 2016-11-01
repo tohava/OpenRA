@@ -138,12 +138,16 @@ namespace OpenRA.Mods.Common.Traits
 			var forceAttack = order.OrderString == forceAttackOrderName;
 			if (forceAttack || order.OrderString == attackOrderName)
 			{
-				var target = self.ResolveFrozenActorOrder(order, Color.Red);
+				// var target = Target.FromOrder(self.World, order);
+				uint frozenId;
+				var target = self.ResolveFrozenActorOrder(order, Color.Red, out frozenId);
 				if (!target.IsValidFor(self))
+				{
+					Console.WriteLine("AttackBase - Target is not valid after resolve frozen");
 					return;
-
+				}
 				self.SetTargetLine(target, Color.Red);
-				AttackTarget(target, order.Queued, true, forceAttack);
+				AttackTarget(target, order.Queued, true, forceAttack, frozenId);
 			}
 		}
 
@@ -174,7 +178,7 @@ namespace OpenRA.Mods.Common.Traits
 			return order.OrderString == attackOrderName || order.OrderString == forceAttackOrderName ? Info.Voice : null;
 		}
 
-		public abstract Activity GetAttackActivity(Actor self, Target newTarget, bool allowMove, bool forceAttack);
+		public abstract Activity GetAttackActivity(Actor self, Target newTarget, bool allowMove, bool forceAttack, uint frozenId);
 
 		public bool HasAnyValidWeapons(Target t)
 		{
@@ -231,12 +235,24 @@ namespace OpenRA.Mods.Common.Traits
 		}
 
 		// Enumerates all armaments, that this actor possesses, that can be used against Target t
-		public IEnumerable<Armament> ChooseArmamentsForTarget(Target t, bool forceAttack)
+		public IEnumerable<Armament> ChooseArmamentsForTarget(Target t, bool forceAttack, uint frozenId = 0)
 		{
+			// Check if the frozen id is still valid
+			if (frozenId != 0)
+			{
+				var frozenLayer = self.Owner.PlayerActor.TraitOrDefault<FrozenActorLayer>();
+				if (frozenLayer == null || frozenLayer.FromID(frozenId) == null)
+					frozenId = 0;
+			}
+				
+
 			// If force-fire is not used, and the target requires force-firing or the target is
 			// terrain or invalid, no armaments can be used
-			if (!forceAttack && (t.Type == TargetType.Terrain || t.Type == TargetType.Invalid || t.RequiresForceFire))
+			if (!forceAttack && frozenId == 0 && (t.Type == TargetType.Terrain || t.Type == TargetType.Invalid || t.RequiresForceFire))
+			{
+				Console.WriteLine("AttackBase - will return no armaments for target ot type " + t.Type);
 				return Enumerable.Empty<Armament>();
+			}
 
 			// Get target's owner; in case of terrain or invalid target there will be no problems
 			// with owner == null since forceFire will have to be true in this part of the method
@@ -265,8 +281,10 @@ namespace OpenRA.Mods.Common.Traits
 				&& a.Weapon.IsValidAgainst(t, self.World, self));
 		}
 
-		public void AttackTarget(Target target, bool queued, bool allowMove, bool forceAttack = false)
+		public void AttackTarget(Target target, bool queued, bool allowMove, bool forceAttack = false, uint frozenId = 0)
 		{
+			Console.WriteLine("AttackBase - AttackTarget called");
+			
 			if (self.IsDisabled() || IsTraitDisabled)
 				return;
 
@@ -276,7 +294,8 @@ namespace OpenRA.Mods.Common.Traits
 			if (!queued)
 				self.CancelActivity();
 
-			self.QueueActivity(GetAttackActivity(self, target, allowMove, forceAttack));
+			Console.WriteLine("AttackBase - Queueing attack activity");
+			self.QueueActivity(GetAttackActivity(self, target, allowMove, forceAttack, frozenId));
 		}
 
 		public bool IsReachableTarget(Target target, bool allowMove)
@@ -329,8 +348,10 @@ namespace OpenRA.Mods.Common.Traits
 				var forceAttack = modifiers.HasModifier(TargetModifiers.ForceAttack);
 				var a = ab.ChooseArmamentsForTarget(target, forceAttack).FirstOrDefault();
 				if (a == null)
+				{
+					Console.WriteLine("AttackBase - no armaments");
 					return false;
-
+				}
 				cursor = !target.IsInRange(self.CenterPosition, a.MaxRange())
 					? ab.Info.OutsideRangeCursor ?? a.Info.OutsideRangeCursor
 					: ab.Info.Cursor ?? a.Info.Cursor;
@@ -376,6 +397,7 @@ namespace OpenRA.Mods.Common.Traits
 					case TargetType.Terrain:
 						return CanTargetLocation(self, self.World.Map.CellContaining(target.CenterPosition), othersAtTarget, modifiers, ref cursor);
 					default:
+						Console.WriteLine("AttackBase - cannot target something with type " + target.Type);
 						return false;
 				}
 			}

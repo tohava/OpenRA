@@ -64,6 +64,13 @@ namespace OpenRA.Mods.Common
 
 		public static Target ResolveFrozenActorOrder(this Actor self, Order order, Color targetLine)
 		{
+			uint dummy;
+			return ResolveFrozenActorOrder(self, order, targetLine, out dummy);
+		}
+
+		public static Target ResolveFrozenActorOrder(this Actor self, Order order, Color targetLine, out uint frozenId)
+		{
+			frozenId = 0;
 			// Not targeting a frozen actor
 			if (order.ExtraData == 0)
 				return Target.FromOrder(self.World, order);
@@ -73,6 +80,7 @@ namespace OpenRA.Mods.Common
 			if (frozenLayer == null)
 				return Target.Invalid;
 
+			frozenId = order.ExtraData;
 			var frozen = frozenLayer.FromID(order.ExtraData);
 			if (frozen == null)
 				return Target.Invalid;
@@ -80,24 +88,7 @@ namespace OpenRA.Mods.Common
 			// Flashes the frozen proxy
 			self.SetTargetLine(frozen, targetLine, true);
 
-			// Target is still alive - resolve the real order
-			if (frozen.Actor != null && frozen.Actor.IsInWorld)
-				return Target.FromActor(frozen.Actor);
-
-			if (!order.Queued)
-				self.CancelActivity();
-
-			var move = self.TraitOrDefault<IMove>();
-			if (move != null)
-			{
-				// Move within sight range of the frozen actor
-				var sight = self.TraitOrDefault<RevealsShroud>();
-				var range = sight != null ? sight.Range : WDist.FromCells(2);
-
-				self.QueueActivity(move.MoveWithinRange(Target.FromPos(frozen.CenterPosition), range));
-			}
-
-			return Target.Invalid;
+			return Target.FromPos(frozen.CenterPosition);
 		}
 
 		public static void NotifyBlocker(this Actor self, IEnumerable<Actor> blockers)

@@ -70,7 +70,7 @@ namespace OpenRA.Mods.Common.Traits
 			timeToRecharge = info.ReloadDelay;
 		}
 
-		public override Activity GetAttackActivity(Actor self, Target newTarget, bool allowMove, bool forceAttack)
+		public override Activity GetAttackActivity(Actor self, Target newTarget, bool allowMove, bool forceAttack, uint frozenId)
 		{
 			return new ChargeAttack(this, newTarget);
 		}

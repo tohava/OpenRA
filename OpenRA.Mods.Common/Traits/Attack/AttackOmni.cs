@@ -24,7 +24,7 @@ namespace OpenRA.Mods.Common.Traits
 		public AttackOmni(Actor self, AttackOmniInfo info)
 			: base(self, info) { }
 
-		public override Activity GetAttackActivity(Actor self, Target newTarget, bool allowMove, bool forceAttack)
+		public override Activity GetAttackActivity(Actor self, Target newTarget, bool allowMove, bool forceAttack, uint frozenId)
 		{
 			return new SetTarget(this, newTarget);
 		}
