@@ -48,9 +48,9 @@ namespace OpenRA.Mods.Common.Traits
 			return true;
 		}
 
-		public override Activity GetAttackActivity(Actor self, Target newTarget, bool allowMove, bool forceAttack, uint frozenId)
+		public override Activity GetAttackActivity(Actor self, Target newTarget, bool allowMove, bool forceAttack)
 		{
-			return new Activities.Attack(self, newTarget, allowMove, forceAttack, frozenId);
+			return new Activities.Attack(self, newTarget, allowMove, forceAttack);
 		}
 	}
 }

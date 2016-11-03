@@ -29,7 +29,6 @@ namespace OpenRA.Mods.Common.Activities
 		readonly IFacing facing;
 		readonly IPositionable positionable;
 		readonly bool forceAttack;
-		readonly uint frozenId;
 
 		WDist minRange;
 		WDist maxRange;
@@ -37,12 +36,11 @@ namespace OpenRA.Mods.Common.Activities
 		Activity moveActivity;
 		AttackStatus attackStatus = AttackStatus.UnableToAttack;
 
-		public Attack(Actor self, Target target, bool allowMovement, bool forceAttack, uint frozenId)
+		public Attack(Actor self, Target target, bool allowMovement, bool forceAttack)
 		{
 			Target = target;
 
 			this.forceAttack = forceAttack;
-			this.frozenId = frozenId;
 
 			attackTraits = self.TraitsImplementing<AttackBase>().ToArray();
 			facing = self.Trait<IFacing>();
@@ -80,7 +78,7 @@ namespace OpenRA.Mods.Common.Activities
 				return NextActivity;
 
 			var type = Target.Type;
-			if (!Target.IsValidFor(self) || type == TargetType.FrozenActor)
+			if (!Target.IsValidFor(self))
 			{
 				Console.WriteLine("Target is no longer valid! " + Target.IsValidFor(self) + "," + type);
 				return NextActivity;
@@ -104,7 +102,7 @@ namespace OpenRA.Mods.Common.Activities
 				return NextActivity;
 
 			// Drop the target once none of the weapons are effective against it
-			var armaments = attack.ChooseArmamentsForTarget(Target, forceAttack, frozenId).ToList();
+			var armaments = attack.ChooseArmamentsForTarget(Target, forceAttack).ToList();
 			if (armaments.Count == 0)
 				return NextActivity;
 

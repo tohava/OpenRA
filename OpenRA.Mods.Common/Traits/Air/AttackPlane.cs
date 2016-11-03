@@ -35,7 +35,7 @@ namespace OpenRA.Mods.Common.Traits
 			aircraftInfo = self.Info.TraitInfo<AircraftInfo>();
 		}
 
-		public override Activity GetAttackActivity(Actor self, Target newTarget, bool allowMove, bool forceAttack, uint frozenId)
+		public override Activity GetAttackActivity(Actor self, Target newTarget, bool allowMove, bool forceAttack)
 		{
 			return new FlyAttack(self, newTarget);
 		}

@@ -139,15 +139,14 @@ namespace OpenRA.Mods.Common.Traits
 			if (forceAttack || order.OrderString == attackOrderName)
 			{
 				// var target = Target.FromOrder(self.World, order);
-				uint frozenId;
-				var target = self.ResolveFrozenActorOrder(order, Color.Red, out frozenId);
+				var target = self.ResolveFrozenActorOrder(order, Color.Red);
 				if (!target.IsValidFor(self))
 				{
 					Console.WriteLine("AttackBase - Target is not valid after resolve frozen");
 					return;
 				}
 				self.SetTargetLine(target, Color.Red);
-				AttackTarget(target, order.Queued, true, forceAttack, frozenId);
+				AttackTarget(target, order.Queued, true, forceAttack);
 			}
 		}
 
@@ -178,7 +177,7 @@ namespace OpenRA.Mods.Common.Traits
 			return order.OrderString == attackOrderName || order.OrderString == forceAttackOrderName ? Info.Voice : null;
 		}
 
-		public abstract Activity GetAttackActivity(Actor self, Target newTarget, bool allowMove, bool forceAttack, uint frozenId);
+		public abstract Activity GetAttackActivity(Actor self, Target newTarget, bool allowMove, bool forceAttack);
 
 		public bool HasAnyValidWeapons(Target t)
 		{
@@ -235,20 +234,20 @@ namespace OpenRA.Mods.Common.Traits
 		}
 
 		// Enumerates all armaments, that this actor possesses, that can be used against Target t
-		public IEnumerable<Armament> ChooseArmamentsForTarget(Target t, bool forceAttack, uint frozenId = 0)
+		public IEnumerable<Armament> ChooseArmamentsForTarget(Target t, bool forceAttack)
 		{
-			// Check if the frozen id is still valid
-			if (frozenId != 0)
+			// If the target is frozen, make sure it is still valid
+			if (t.Type == TargetType.FrozenActor)
 			{
 				var frozenLayer = self.Owner.PlayerActor.TraitOrDefault<FrozenActorLayer>();
-				if (frozenLayer == null || frozenLayer.FromID(frozenId) == null)
-					frozenId = 0;
+				if (frozenLayer == null || frozenLayer.FromID(t.FrozenActor.ID) == null)
+					return Enumerable.Empty<Armament>();
 			}
 				
 
 			// If force-fire is not used, and the target requires force-firing or the target is
 			// terrain or invalid, no armaments can be used
-			if (!forceAttack && frozenId == 0 && (t.Type == TargetType.Terrain || t.Type == TargetType.Invalid || t.RequiresForceFire))
+			if (!forceAttack && (t.Type == TargetType.Terrain || t.Type == TargetType.Invalid || t.RequiresForceFire))
 			{
 				Console.WriteLine("AttackBase - will return no armaments for target ot type " + t.Type);
 				return Enumerable.Empty<Armament>();
@@ -281,7 +280,7 @@ namespace OpenRA.Mods.Common.Traits
 				&& a.Weapon.IsValidAgainst(t, self.World, self));
 		}
 
-		public void AttackTarget(Target target, bool queued, bool allowMove, bool forceAttack = false, uint frozenId = 0)
+		public void AttackTarget(Target target, bool queued, bool allowMove, bool forceAttack = false)
 		{
 			Console.WriteLine("AttackBase - AttackTarget called");
 			
@@ -295,7 +294,7 @@ namespace OpenRA.Mods.Common.Traits
 				self.CancelActivity();
 
 			Console.WriteLine("AttackBase - Queueing attack activity");
-			self.QueueActivity(GetAttackActivity(self, target, allowMove, forceAttack, frozenId));
+			self.QueueActivity(GetAttackActivity(self, target, allowMove, forceAttack));
 		}
 
 		public bool IsReachableTarget(Target target, bool allowMove)

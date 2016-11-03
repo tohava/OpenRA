@@ -64,13 +64,6 @@ namespace OpenRA.Mods.Common
 
 		public static Target ResolveFrozenActorOrder(this Actor self, Order order, Color targetLine)
 		{
-			uint dummy;
-			return ResolveFrozenActorOrder(self, order, targetLine, out dummy);
-		}
-
-		public static Target ResolveFrozenActorOrder(this Actor self, Order order, Color targetLine, out uint frozenId)
-		{
-			frozenId = 0;
 			// Not targeting a frozen actor
 			if (order.ExtraData == 0)
 				return Target.FromOrder(self.World, order);
@@ -80,7 +73,6 @@ namespace OpenRA.Mods.Common
 			if (frozenLayer == null)
 				return Target.Invalid;
 
-			frozenId = order.ExtraData;
 			var frozen = frozenLayer.FromID(order.ExtraData);
 			if (frozen == null)
 				return Target.Invalid;
@@ -88,7 +80,7 @@ namespace OpenRA.Mods.Common
 			// Flashes the frozen proxy
 			self.SetTargetLine(frozen, targetLine, true);
 
-			return Target.FromPos(frozen.CenterPosition);
+			return Target.FromFrozenActor(frozen);
 		}
 
 		public static void NotifyBlocker(this Actor self, IEnumerable<Actor> blockers)
