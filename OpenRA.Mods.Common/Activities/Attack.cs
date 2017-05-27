@@ -57,6 +57,10 @@ namespace OpenRA.Mods.Common.Activities
 			foreach (var attack in attackTraits.Where(x => !x.IsTraitDisabled))
 			{
 				var activity = InnerTick(self, attack);
+				if (activity != this && activity != NextActivity) {
+					// Attack switched from frozen target to real or vice versa
+					return activity;
+				}
 				attack.IsAttacking = activity == this;
 			}
 
@@ -78,18 +82,34 @@ namespace OpenRA.Mods.Common.Activities
 				return NextActivity;
 
 			var type = Target.Type;
-			if (!Target.IsValidFor(self) || type == TargetType.FrozenActor)
-				return NextActivity;
 
-			if (attack.Info.AttackRequiresEnteringCell && !positionable.CanEnterCell(Target.Actor.Location, null, false))
+			if (!Target.IsValidFor(self)) {
+				if (Target.FrozenActor != null && Target.FrozenActor.Actor != null) {
+					var loc = self.World.Map.CellContaining(Target.FrozenActor.CenterPosition);
+					foreach (var actor in self.World.ActorMap.GetActorsAt(loc))
+						if (actor.ActorID == Target.FrozenActor.ID)
+							return new Attack(self, Target.FromActor(actor), move != null, forceAttack);
+				}
+				return NextActivity;
+			}
+
+			var positionableLoc = self.World.Map.CellContaining(Target.CenterPosition);
+			if (attack.Info.AttackRequiresEnteringCell && !positionable.CanEnterCell(positionableLoc, null, false))
 				return NextActivity;
 
 			// Drop the target if it moves under the shroud / fog.
 			// HACK: This would otherwise break targeting frozen actors
 			// The problem is that Shroud.IsTargetable returns false (as it should) for
 			// frozen actors, but we do want to explicitly target the underlying actor here.
-			if (!attack.Info.IgnoresVisibility && type == TargetType.Actor && !Target.Actor.Info.HasTraitInfo<FrozenUnderFogInfo>() && !self.Owner.CanTargetActor(Target.Actor))
+			if (Target.Actor != null && !self.Owner.CanTargetActor(Target.Actor)) {
+				if (type == TargetType.Actor) {
+					var frozenLayer = self.Owner.PlayerActor.TraitOrDefault<FrozenActorLayer>();
+					var frozenActor = frozenLayer.FromID(Target.Actor.ActorID);
+					if (frozenActor != null)
+						return new Attack(self, Target.FromFrozenActor(frozenActor), move != null, forceAttack);
+				}
 				return NextActivity;
+			}
 
 			// Drop the target once none of the weapons are effective against it
 			var armaments = attack.ChooseArmamentsForTarget(Target, forceAttack).ToList();
